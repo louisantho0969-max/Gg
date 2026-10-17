@@ -1,0 +1,44 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MonPanel"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 380)
+frame.Position = UDim2.new(0.5, -150, 0.5, -190)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 50)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Mon Panel"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.Parent = frame
+
+local img = Instance.new("ImageLabel")
+img.Size = UDim2.new(1, -20, 1, -60)
+img.Position = UDim2.new(0, 10, 0, 50)
+img.BackgroundTransparency = 1
+img.Image = "rbxassetid://122661212375976"
+img.ScaleType = Enum.ScaleType.Crop
+img.Parent = frame
+Instance.new("UICorner", img).CornerRadius = UDim.new(0, 8)
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -35, 0, 5)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+close.TextColor3 = Color3.new(1, 1, 1)
+close.Parent = frame
+Instance.new("UICorner", close)
+close.MouseButton1Click:Connect(function() gui:Destroy() end)
