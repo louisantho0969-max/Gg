@@ -1,14 +1,25 @@
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("ReplicatedStorage")
+local me = Players.LocalPlayer
+local remote = RS:WaitForChild("AdminBring")
+
+local ADMIN_ID = 7157454259
+if me.UserId ~= ADMIN_ID then return end
+
+local OFF = Color3.fromRGB(90, 60, 200)
+local ON = Color3.fromRGB(40, 170, 90)
+local connections = {}
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "MonPanel"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = me:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 380)
-frame.Position = UDim2.new(0.5, -150, 0.5, -190)
+frame.Size = UDim2.new(0, 300, 0, 470)
+frame.Position = UDim2.new(0.5, -150, 0.5, -235)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 50)
 frame.Active = true
 frame.Draggable = true
@@ -18,15 +29,15 @@ Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -40, 0, 40)
 title.BackgroundTransparency = 1
-title.Text = "Mon Panel"
+title.Text = "Panel Admin"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 20
 title.Parent = frame
 
 local img = Instance.new("ImageLabel")
-img.Size = UDim2.new(1, -20, 1, -60)
-img.Position = UDim2.new(0, 10, 0, 50)
+img.Size = UDim2.new(1, -20, 0, 110)
+img.Position = UDim2.new(0, 10, 0, 45)
 img.BackgroundTransparency = 1
 img.Image = "rbxassetid://122661212375976"
 img.ScaleType = Enum.ScaleType.Crop
@@ -41,4 +52,161 @@ close.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 close.TextColor3 = Color3.new(1, 1, 1)
 close.Parent = frame
 Instance.new("UICorner", close)
-close.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+local holder = Instance.new("Frame")
+holder.Size = UDim2.new(1, -20, 1, -170)
+holder.Position = UDim2.new(0, 10, 0, 165)
+holder.BackgroundTransparency = 1
+holder.Parent = frame
+Instance.new("UIListLayout", holder).Padding = UDim.new(0, 8)
+
+-- Outils
+local function getHum()
+	local c = me.Character
+	return c and c:FindFirstChildOfClass("Humanoid")
+end
+local function getRoot()
+	local c = me.Character
+	return c and c:FindFirstChild("HumanoidRootPart")
+end
+
+local function styleBtn(b, texte)
+	b.Size = UDim2.new(1, 0, 0, 38)
+	b.BackgroundColor3 = OFF
+	b.Text = texte
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.Parent = holder
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+end
+
+local function creerToggle(texte, onStart, onStop)
+	local actif = false
+	local b = Instance.new("TextButton")
+	styleBtn(b, texte .. " : OFF")
+	b.MouseButton1Click:Connect(function()
+		actif = not actif
+		b.BackgroundColor3 = actif and ON or OFF
+		b.Text = texte .. (actif and " : ON" or " : OFF")
+		if actif then onStart() else onStop() end
+	end)
+end
+
+-- Vitesse
+local vitesseOn = false
+creerToggle("Vitesse", function()
+	vitesseOn = true
+	connections.vitesse = RunService.Heartbeat:Connect(function()
+		local h = getHum()
+		if h and vitesseOn then h.WalkSpeed = 50 end
+	end)
+end, function()
+	vitesseOn = false
+	if connections.vitesse then connections.vitesse:Disconnect() end
+	local h = getHum()
+	if h then h.WalkSpeed = 16 end
+end)
+
+-- Saut infini
+creerToggle("Saut infini", function()
+	connections.saut = UIS.JumpRequest:Connect(function()
+		local h = getHum()
+		if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+	end)
+end, function()
+	if connections.saut then connections.saut:Disconnect() end
+end)
+
+-- Noclip
+creerToggle("Noclip", function()
+	connections.noclip = RunService.Stepped:Connect(function()
+		local c = me.Character
+		if c then
+			for _, p in ipairs(c:GetDescendants()) do
+				if p:IsA("BasePart") then p.CanCollide = false end
+			end
+		end
+	end)
+end, function()
+	if connections.noclip then connections.noclip:Disconnect() end
+end)
+
+-- Vol
+local bv
+creerToggle("Vol", function()
+	local root, h = getRoot(), getHum()
+	if not root or not h then return end
+	h.PlatformStand = true
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	bv.Velocity = Vector3.zero
+	bv.Parent = root
+	connections.vol = RunService.Heartbeat:Connect(function()
+		local dir = h.MoveDirection
+		local cam = workspace.CurrentCamera
+		if dir.Magnitude > 0 then
+			bv.Velocity = Vector3.new(dir.X * 60, cam.CFrame.LookVector.Y * 60, dir.Z * 60)
+		else
+			bv.Velocity = Vector3.zero
+		end
+	end)
+end, function()
+	if connections.vol then connections.vol:Disconnect() end
+	if bv then bv:Destroy() end
+	local h = getHum()
+	if h then h.PlatformStand = false end
+end)
+
+-- Liste des joueurs (clic sur un nom = bring)
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Size = UDim2.new(0, 200, 0, 300)
+listFrame.Position = UDim2.new(1, 10, 0, 0)
+listFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 50)
+listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+listFrame.CanvasSize = UDim2.new()
+listFrame.Visible = false
+listFrame.Parent = frame
+Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIListLayout", listFrame).Padding = UDim.new(0, 5)
+
+local function refresh()
+	for _, c in ipairs(listFrame:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= me then
+			local b = Instance.new("TextButton")
+			b.Size = UDim2.new(1, -10, 0, 35)
+			b.Text = p.Name
+			b.BackgroundColor3 = OFF
+			b.TextColor3 = Color3.new(1, 1, 1)
+			b.Font = Enum.Font.Gotham
+			b.TextSize = 14
+			b.Parent = listFrame
+			Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+			b.MouseButton1Click:Connect(function()
+				remote:FireServer(p.Name)
+			end)
+		end
+	end
+end
+Players.PlayerAdded:Connect(refresh)
+Players.PlayerRemoving:Connect(function() task.wait() refresh() end)
+refresh()
+
+local listBtn = Instance.new("TextButton")
+styleBtn(listBtn, "Liste des joueurs")
+listBtn.MouseButton1Click:Connect(function()
+	listFrame.Visible = not listFrame.Visible
+	listBtn.BackgroundColor3 = listFrame.Visible and ON or OFF
+end)
+
+-- Fermer proprement
+close.MouseButton1Click:Connect(function()
+	for _, c in pairs(connections) do c:Disconnect() end
+	if bv then bv:Destroy() end
+	local h = getHum()
+	if h then h.PlatformStand = false h.WalkSpeed = 16 end
+	gui:Destroy()
+end)
